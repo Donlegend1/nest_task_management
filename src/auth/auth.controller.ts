@@ -23,11 +23,15 @@ export class AuthController {
     return this.authService.register(createUserDto);
   }
 
-@Post('login')
+ @Post('login')
   async login(@Body() loginUserDto: LoginUserDto, @Res() res: Response) {
     try {
-      const { accessToken, user } = await this.authService.login(loginUserDto);
-      res.cookie('jwt', accessToken, { httpOnly: true, maxAge: 3600 * 1000 });
+      const { accessToken, user } = await this.authService.login(loginUserDto, res);
+      res.cookie('jwt', accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production', // Ensure cookies are secure in production
+        maxAge: parseInt(process.env.LOGIN_SESSION_TIME) * 1000, // Convert to milliseconds
+      });
       res.status(HttpStatus.CREATED).json({
         data: { token: accessToken, user },
         success: true,

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException, UnauthorizedException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, UnauthorizedException, Res } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
@@ -7,6 +7,8 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
 import * as bcrypt from 'bcrypt';
+import { Response } from 'express';
+import { PassThrough } from 'stream';
 
 @Injectable()
 export class AuthService {
@@ -24,9 +26,12 @@ export class AuthService {
     });
     return this.usersRepository.save(user);
   }
-
-  async login(loginUserDto: LoginUserDto): Promise<{ accessToken: string; user: User }> {
+ async login(
+    loginUserDto: LoginUserDto,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<{ accessToken: string; user: User }> {
     const { username, password } = loginUserDto;
+
     const user = await this.usersRepository.findOne({
       where: { username },
     });
@@ -44,6 +49,13 @@ export class AuthService {
     const accessToken = this.jwtService.sign(payload, {
       secret: process.env.LOGIN_SECRET_TOKEN_VALUE,
       expiresIn: process.env.LOGIN_SESSION_TIME,
+    });
+
+    // Set the JWT in a HttpOnly cookie
+    response.cookie('jwt', accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production', // Ensure cookies are secure in production
+      maxAge: parseInt(process.env.LOGIN_SESSION_TIME) * 1000, // Convert to milliseconds
     });
 
     return { accessToken: 'JWT ' + accessToken, user };

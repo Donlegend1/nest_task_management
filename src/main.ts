@@ -9,7 +9,8 @@ async function bootstrap() {
   // Enable validation globally
   app.useGlobalPipes(new ValidationPipe());
   app.enableCors({
-    origin: ["http://localhost:8000", "add other frontend url"]
+    origin: ["http://localhost:8000", "add other frontend url"],
+    credentials:true
   });
 
   const config = new DocumentBuilder()
